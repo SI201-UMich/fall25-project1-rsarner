@@ -21,9 +21,9 @@ print(f"numer of rows: {len(data)}")
 print(f"list of the variables: {data[0].strip().split(",")}")
 
 
-from unittest.gui import TestCaseGui
+import unittest
 
-class MyTests(TestCaseGui):
+class MyTests(unittest.TestCase):
     def testOne(self):
         
         sample = [
@@ -64,34 +64,89 @@ class MyTests(TestCaseGui):
             "Edge case: numeric strings are handled (cast/parse) and summed"
         )
 
-MyTests().main()
+#MyTests().main()
+
+#first code
+def load_superstore(filename):
+    data = []
+    with open(filename, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Convert numerical fields to floats if possible
+            for key, value in row.items():
+                try:
+                    row[key] = float(value)
+                except ValueError:
+                    row[key] = value.strip()
+            data.append(row)
+    return data
 
 
-
-# 1. main()
-    1. Runs the program……
-2. load_superstore
-    1. Read...
-3. get_totals - green function 
-    1. Use once for discounts and once for profits 
-    2. Arguments data /  numerical and categorical 
-    3. Create the total profits for the following columns/given category 
-        1. Input - data (csv) and column (numerical  and categorical columns)
-            1. Discount and state (list of values)
-                1. Sales and region 
-        2. Output -  
-            1. Categorical variable - key 
-            2. Numerical variable - value 
-                1. (Dictionaries) 
-
+# ---------------------------------------------------------
+# Function: get_totals
+# Calculates total numerical values grouped by a categorical variable
+# ---------------------------------------------------------
+def get_totals(data, numerical, categorical):
+    totals = {}
+    for entry in data:
+        cat_value = entry[categorical]
+        num_value = entry[numerical]
+        if isinstance(num_value, (int, float)):
+            totals[cat_value] = totals.get(cat_value, 0) + num_value
+        else:
+            num_value = float(num_value)
+            totals[cat_value] = totals.get(cat_value, 0) + num_value
+    return totals
 
 
-            4. get_percentage (percentage, region)
-                1. Input - Total sales per person (from get_totals)
-                2. Output - dictionary of the percentage of sales per each region  
+# ---------------------------------------------------------
+# Function: get_percentage
+# Converts totals into percentages for each category
+# ---------------------------------------------------------
+def get_percentage(total_dict):
+    total_sum = sum(total_dict.values())
+    if total_sum == 0:
+        return {k: 0 for k in total_dict}
+    return {k: round((v / total_sum) * 100, 2) for k, v in total_dict.items()}
 
 
+# ---------------------------------------------------------
+# Function: write_results
+# Writes a dictionary’s results to a CSV file
+# ---------------------------------------------------------
+def write_results(filename, data_dict, header1, header2):
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([header1, header2])
+        for k, v in data_dict.items():
+            writer.writerow([k, v])
 
 
-#print(data)
+# ---------------------------------------------------------
+# Function: main
+# Loads data, computes totals & percentages, and writes results
+# ---------------------------------------------------------
+def main():
+    data = load_superstore("/Users/rosesarner/Desktop/SI201/fall25-project1-rsarner2/SampleSuperstore.csv")
+
+    # Example 1: Total Discounts by State
+    discount_totals = get_totals(data, "Discount", "State")
+    discount_percentages = get_percentage(discount_totals)
+    write_results("/Users/rosesarner/Desktop/SI201/fall25-project1-rsarner2/discounts_by_state.csv", discount_percentages, "State", "Discount %")
+
+    # Example 2: Total Sales by Region
+    sales_totals = get_totals(data, "Sales", "Region")
+    sales_percentages = get_percentage(sales_totals)
+    write_results("/Users/rosesarner/Desktop/SI201/fall25-project1-rsarner2/sales_by_region.csv", sales_percentages, "Region", "Sales %")
+
+    print("Files created: discounts_by_state.csv and sales_by_region.csv")
+
+
+# Run the program
+def main():
+	unittest.main(verbosity=2)
+if __name__ == "__main__":
+	main()
+
+
 
