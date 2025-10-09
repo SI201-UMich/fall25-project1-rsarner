@@ -141,7 +141,11 @@ def main():
 
     print("Files created: discounts_by_state.csv and sales_by_region.csv")
 
-
+# Run the program
+def main():
+	unittest.main(verbosity=2)
+if __name__ == "__main__":
+	main()
 
 
 
