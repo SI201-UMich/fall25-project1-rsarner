@@ -24,24 +24,47 @@ print(f"list of the variables: {data[0].strip().split(",")}")
 import unittest
 
 class MyTests(unittest.TestCase):
-    def testOne(self):
-        
-        sample = [
+    sample = [
             {"State": "CA", "Region": "West", "Sales": 100.0, "Discount": 0.20, "Profit": 5.0},
             {"State": "CA", "Region": "West", "Sales": 50.0,  "Discount": 0.00, "Profit": 2.0},
             {"State": "NY", "Region": "East", "Sales": 80.0,  "Discount": 0.10, "Profit": -1.0},
         ]
+    def testload_superstore(self):
+        # 1) USUAL: file loads successfully and returns list
+        data = load_superstore("/Users/rosesarner/Desktop/SI201/fall25-project1-rsarner2/SampleSuperstore.csv")
+        self.assertIsInstance(data, list, "Usual case: load_superstore returns a list")
+        self.assertTrue(len(data) > 0, "Usual case: file should not be empty")
+
+        # 2) USUAL: first entry is a dictionary
+        self.assertIsInstance(data[0], dict, "Usual case: each row is a dictionary")
+
+        # 3) EDGE: non-existent file raises FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            load_superstore("non_existent_file.csv")
+
+        # 4) EDGE: empty CSV file -> should return empty list
+        temp_name = "temp_empty.csv"
+        with open(temp_name, "w") as temp:
+            temp.write("")
+        result = load_superstore(temp_name)
+        self.assertEqual(result, [], "Edge case: empty CSV returns empty list")
+        # Clean up
+        open(temp_name, "w").close()
+
+    def testget_totals(self):
+        
+        
 
         # 1) USUAL: discounts by state (matches your diagram use #1)
         self.assertEqual(
-            get_totals(sample, "Discount", "State"),
+            get_totals(self.sample, "Discount", "State"),
             {"CA": 0.20, "NY": 0.10},
             "Tested get_totals on discounts grouped by State"
         )
 
         # 2) USUAL: sales by region (matches your diagram use #2)
         self.assertEqual(
-            get_totals(sample, "Sales", "Region"),
+            get_totals(self.sample, "Sales", "Region"),
             {"West": 150.0, "East": 80.0},
             "Tested get_totals on sales grouped by Region"
         )
@@ -63,6 +86,70 @@ class MyTests(unittest.TestCase):
             {"West": 15.0},
             "Edge case: numeric strings are handled (cast/parse) and summed"
         )
+
+    def testget_percentage(self):
+        # 1) USUAL: evenly distributed totals
+        totals = {"East": 100, "West": 100, "South": 100, "Central": 100}
+        expected = {"East": 25.0, "West": 25.0, "South": 25.0, "Central": 25.0}
+        self.assertEqual(
+            get_percentage(totals),
+            expected,
+            "Tested get_percentage on evenly distributed totals"
+        )
+
+        # 2) USUAL: uneven totals
+        totals = {"West": 150, "East": 50, "South": 100}
+        result = get_percentage(totals)
+        expected = {"West": 50.0, "East": 16.67, "South": 33.33}
+        for key in expected:
+            self.assertAlmostEqual(result[key], expected[key], places=2,
+                                   msg=f"Tested uneven totals: {key}")
+
+        # 3) EDGE: empty dictionary -> returns empty dictionary
+        self.assertEqual(
+            get_percentage({}),
+            {},
+            "Edge case: empty dictionary returns empty dictionary"
+        )
+
+        # 4) EDGE: all totals are zero -> returns 0% for each category
+        totals = {"East": 0, "West": 0, "South": 0}
+        expected = {"East": 0, "West": 0, "South": 0}
+        self.assertEqual(
+            get_percentage(totals),
+            expected,
+            "Edge case: zero totals yield 0% for all categories"
+        )
+
+    def testwrite_results(self):
+        # 1) USUAL: writes a small dictionary correctly
+        data_dict = {"CA": 10, "NY": 20}
+        filename = "test_output.csv"
+        write_results(filename, data_dict, "State", "Value")
+        with open(filename, "r") as f:
+            lines = f.readlines()
+        self.assertTrue("CA" in lines[1] and "NY" in lines[2], "Usual: file contains expected data")
+
+        # 2) USUAL: headers written properly
+        data_dict = {"East": 5, "West": 15}
+        filename = "test_headers.csv"
+        write_results(filename, data_dict, "Region", "Sales %")
+        with open(filename, "r") as f:
+            header = f.readline().strip()
+        self.assertEqual(header, "Region,Sales %", "Usual: header written correctly")
+
+        # 3) EDGE: empty dictionary should only create header line
+        filename = "test_empty.csv"
+        write_results(filename, {}, "Header1", "Header2")
+        with open(filename, "r") as f:
+            lines = f.readlines()
+        self.assertEqual(len(lines), 1, "Edge: empty dict creates header only")
+
+        # 4) EDGE: invalid filename path raises error
+        with self.assertRaises(Exception):
+            write_results("/invalid_path/file.csv", {"CA": 1}, "H1", "H2")
+
+
 
 #MyTests().main()
 
